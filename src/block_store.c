@@ -46,15 +46,25 @@ void block_store_destroy(block_store_t *const bs)
 
 size_t block_store_allocate(block_store_t *const bs)
 {
-	UNUSED(bs);
-	return 0;
+	if(!bs) return SIZE_MAX;
+	size_t firstZero = bitmap_ffz(bs->fbm);
+	if(firstZero != SIZE_MAX){
+		bitmap_set(bs->fbm, firstZero);
+	}
+	return firstZero;
 }
 
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
-	UNUSED(bs);
-	UNUSED(block_id);
-	return false;
+	if(!bs || !block_id || block_id >= bitmap_get_bits(bs->fbm)) return false;
+	bool testBit = bitmap_test(bs->fbm, block_id);
+	if(!testBit) {
+		bitmap_set(bs->fbm, block_id);
+		testBit = bitmap_test(bs->fbm, block_id);
+		return testBit;
+	} else {
+		return !testBit;
+	}
 }
 
 void block_store_release(block_store_t *const bs, const size_t block_id)
