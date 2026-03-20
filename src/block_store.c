@@ -69,8 +69,13 @@ bool block_store_request(block_store_t *const bs, const size_t block_id)
 
 void block_store_release(block_store_t *const bs, const size_t block_id)
 {
-	UNUSED(bs);
-	UNUSED(block_id);
+	// Check that bs is not NULL and that block_id is within valid block indices.
+	if (bs == NULL || block_id >= BLOCK_STORE_NUM_BLOCKS)
+		return;
+	
+	// bitmap_reset doesn't check for the bitmap being NULL, so doing it here for safety
+	if (bs->fbm != NULL)
+		bitmap_reset(bs->fbm, block_id);
 }
 
 size_t block_store_get_used_blocks(const block_store_t *const bs)
