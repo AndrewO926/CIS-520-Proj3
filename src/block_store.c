@@ -86,8 +86,16 @@ size_t block_store_get_used_blocks(const block_store_t *const bs)
 
 size_t block_store_get_free_blocks(const block_store_t *const bs)
 {
-	UNUSED(bs);
-	return 0;
+	if(!bs) return NULL;
+
+	size_t free_blocks;
+	size_t used_blocks = block_store_get_used_blocks(bs);
+
+	if(!used_blocks) return NULL;
+
+	free_blocks = BLOCK_STORE_NUM_BLOCKS - used_blocks;
+	
+	return free_blocks;
 }
 
 size_t block_store_get_total_blocks()
