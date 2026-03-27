@@ -80,18 +80,22 @@ void block_store_release(block_store_t *const bs, const size_t block_id)
 
 size_t block_store_get_used_blocks(const block_store_t *const bs)
 {
-	UNUSED(bs);
-	return 0;
+	// Check for Block Store being NULL
+	if(!bs)
+		return SIZE_MAX;
+
+	// Return the call to bitmap_total_set	
+	return bitmap_total_set(bs->fbm);
 }
 
 size_t block_store_get_free_blocks(const block_store_t *const bs)
 {
-	if(!bs) return NULL;
+	if(!bs) return SIZE_MAX;
 
 	size_t free_blocks;
 	size_t used_blocks = block_store_get_used_blocks(bs);
 
-	if(!used_blocks) return NULL;
+	if(!used_blocks) return SIZE_MAX;
 
 	free_blocks = BLOCK_STORE_NUM_BLOCKS - used_blocks;
 	
