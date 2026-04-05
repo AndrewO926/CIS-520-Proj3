@@ -52,9 +52,12 @@ void block_store_destroy(block_store_t *const bs)
 
 size_t block_store_allocate(block_store_t *const bs)
 {
+	// Check store is not null
 	if(!bs) return SIZE_MAX;
+	// Find first zero
 	size_t firstZero = bitmap_ffz(bs->fbm);
 	if(firstZero != SIZE_MAX){
+		// If the first zero is valid, set it
 		bitmap_set(bs->fbm, firstZero);
 	}
 	return firstZero;
@@ -62,13 +65,18 @@ size_t block_store_allocate(block_store_t *const bs)
 
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
+	// Check for valid parameters
 	if(!bs || !block_id || block_id >= bitmap_get_bits(bs->fbm)) return false;
 	bool testBit = bitmap_test(bs->fbm, block_id);
+	// If the bit is not set
 	if(!testBit) {
+		// Set bit
 		bitmap_set(bs->fbm, block_id);
+		// Make sure set worked and return
 		testBit = bitmap_test(bs->fbm, block_id);
 		return testBit;
 	} else {
+		//return that the bit is already set
 		return !testBit;
 	}
 }
@@ -96,13 +104,16 @@ size_t block_store_get_used_blocks(const block_store_t *const bs)
 
 size_t block_store_get_free_blocks(const block_store_t *const bs)
 {
+	// Check for valid bs
 	if(!bs) return SIZE_MAX;
 
+	// Check how many used blocks there are
 	size_t free_blocks;
 	size_t used_blocks = block_store_get_used_blocks(bs);
 
 	if(!used_blocks) return SIZE_MAX;
 
+	// Minus number of blocks from used blocks to get free blocks
 	free_blocks = BLOCK_STORE_NUM_BLOCKS - used_blocks;
 	
 	return free_blocks;
@@ -133,8 +144,10 @@ size_t block_store_read(const block_store_t *const bs, const size_t block_id, vo
 
 size_t block_store_write(block_store_t *const bs, const size_t block_id, const void *buffer)
 {
+	// Check that parameters are valid
 	if(!bs || !buffer || block_id >= BLOCK_STORE_NUM_BLOCKS) return 0;
 
+	// Create the spot to copy data to
 	size_t byte_offset = block_id * BLOCK_SIZE_BYTES;
 
     memcpy(&bs->data[byte_offset], buffer, BLOCK_SIZE_BYTES);
