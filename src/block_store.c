@@ -147,53 +147,47 @@ block_store_t *block_store_deserialize(const char *const filename)
 	return NULL;
 }
 
-size_t block_store_serialize(const block_store_t *const bs, const char *const filename)
-{
-	#include <fcntl.h>
-#include <unistd.h>
-#include <stdint.h>
-
+// Serializes block store using POSIX system calls
 size_t block_store_serialize(const block_store_t *const bs, const char *const filename)
 {
 	// Parameter validation
-    if (bs == NULL || filename == NULL) {
-        return 0;
-    }
+		if (bs == NULL || filename == NULL) {
+			return 0;
+		}
 
-	// Opens file with POSIX interface, 0644 for read/write permissions
-    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd < 0) {
-        return 0; 
-    }
+		// Opens file with POSIX interface, 0644 for read/write permissions
+		int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if (fd < 0) {
+			return 0; 
+		}
 
-	// Writes block store data to file
-    ssize_t bytes_written = write(fd, bs->data, BLOCK_STORE_NUM_BYTES);
-    
-	// Checks if write failed
-    if (bytes_written < 0) {
-        close(fd);
-        return 0;
-    }
+		// Writes block store data to file
+		ssize_t bytes_written = write(fd, bs->data, BLOCK_STORE_NUM_BYTES);
+		
+		// Checks if write failed
+		if (bytes_written < 0) {
+			close(fd);
+			return 0;
+		}
 
-    size_t current_file_size = (size_t)bytes_written;
-	
-	// Pads rest of file with zeros until at expected file size
-    if (current_file_size < BLOCK_STORE_NUM_BYTES) {
-        uint8_t zero_pad = 0;
-        
-        while (current_file_size < BLOCK_STORE_NUM_BYTES) {
-            ssize_t pad_result = write(fd, &zero_pad, 1);
-            
-            if (pad_result > 0) {
-                current_file_size += pad_result;
-            } else {
-                break; 
-            }
-        }
-    }
+		size_t current_file_size = (size_t)bytes_written;
+		
+		// Pads rest of file with zeros until at expected file size
+		if (current_file_size < BLOCK_STORE_NUM_BYTES) {
+			uint8_t zero_pad = 0;
+			
+			while (current_file_size < BLOCK_STORE_NUM_BYTES) {
+				ssize_t pad_result = write(fd, &zero_pad, 1);
+				
+				if (pad_result > 0) {
+					current_file_size += pad_result;
+				} else {
+					break; 
+				}
+			}
+		}
 
-    close(fd);
+		close(fd);
 
-    return current_file_size;
-}
+		return current_file_size;
 }
