@@ -114,6 +114,7 @@ size_t block_store_get_total_blocks()
 	return BLOCK_STORE_NUM_BLOCKS;
 }
 
+// Reads contents of a block store into a buffer and returns the number of bytes successfully read
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
 	// Parameter validation
