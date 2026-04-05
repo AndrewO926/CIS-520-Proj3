@@ -157,8 +157,43 @@ size_t block_store_write(block_store_t *const bs, const size_t block_id, const v
 
 block_store_t *block_store_deserialize(const char *const filename)
 {
-	UNUSED(filename);
-	return NULL;
+	// Param Chaecking
+	if (filename == NULL) return NULL;
+
+	// Open the file to read.
+	int fd = open(filename, O_RDONLY);
+	if (fd < 0) return NULL;
+
+	// Allocate the block_store_t pointer to return
+	block_store_t *bs = malloc(sizeof(block_store_t));
+	if (!bs) {
+		close(fd);
+		return NULL;
+	}
+
+	// Read in the data with checking the correct amount of bytes were read
+	if (read(fd, bs->data, BLOCK_STORE_NUM_BYTES) != BLOCK_STORE_NUM_BYTES) {
+		free(bs);
+		close(fd);
+		return NULL;
+	}
+
+	// Calculate the place in memory where the bitmap starts
+	uint8_t *bitmap_ptr = &(bs->data[BITMAP_START_BLOCK * BLOCK_SIZE_BYTES]);
+
+	// Import the data from the read using lib function
+	bs->fbm = bitmap_import(BLOCK_STORE_NUM_BLOCKS, bitmap_ptr);
+	
+
+	if(!bs->fbm) {
+		free(bs);
+		close(fd);
+		return NULL;
+	}
+
+	// Close the file stream and return
+	close(fd);
+	return bs;
 }
 
 // Serializes block store using POSIX system calls
