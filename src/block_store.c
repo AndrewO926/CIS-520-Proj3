@@ -1,25 +1,29 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "bitmap.h"
 #include "block_store.h"
 // include more if you need
 
+// Block store struct with data array and FBM
 struct block_store {
 	uint8_t data[BLOCK_STORE_NUM_BYTES];
 	bitmap_t *fbm;
 };
-// You might find this handy. I put it around unused parameters, but you should
-// remove it before you submit. Just allows things to compile initially.
-#define UNUSED(x) (void)(x)
 
+// Creates a new block store and returns its pointer, bs
 block_store_t *block_store_create()
 {
+	// Allocates memory and initializes to zero
 	block_store_t *bs = calloc(1,sizeof(block_store_t));
 	if (bs == NULL) {
 		return NULL;
 	}
+
+	// Sets bitmap field to overlay of a bitmap with sizes defined in header file
 	bs->fbm = bitmap_overlay(BITMAP_SIZE_BITS, &bs->data[BITMAP_START_BLOCK * BLOCK_SIZE_BYTES]);
 
 	if (bs->fbm == NULL) {
@@ -27,6 +31,7 @@ block_store_t *block_store_create()
         return NULL;
     }
 
+	// Marks blocks used by bitmap as allocated
 	for (size_t i = 0; i < BITMAP_NUM_BLOCKS; ++i) {
         block_store_request(bs, BITMAP_START_BLOCK + i);
     }
@@ -103,6 +108,7 @@ size_t block_store_get_free_blocks(const block_store_t *const bs)
 	return free_blocks;
 }
 
+// Returns total number of blocks
 size_t block_store_get_total_blocks()
 {
 	return BLOCK_STORE_NUM_BLOCKS;
@@ -110,14 +116,17 @@ size_t block_store_get_total_blocks()
 
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
+	// Parameter validation
 	if (bs == NULL || buffer == NULL || block_id >= BLOCK_STORE_NUM_BLOCKS) {
                 return 0;
         }
 
     size_t byte_offset = block_id * BLOCK_SIZE_BYTES;
-
+	
+	// Reads block store into a buffer and records number of bytes successfully read
     memcpy(buffer, &bs->data[byte_offset], BLOCK_SIZE_BYTES);
 
+	// Returns number of bytes successfully read into buffer
     return BLOCK_SIZE_BYTES;
 }
 
@@ -140,7 +149,51 @@ block_store_t *block_store_deserialize(const char *const filename)
 
 size_t block_store_serialize(const block_store_t *const bs, const char *const filename)
 {
-	UNUSED(bs);
-	UNUSED(filename);
-	return 0;
+	#include <fcntl.h>
+#include <unistd.h>
+#include <stdint.h>
+
+size_t block_store_serialize(const block_store_t *const bs, const char *const filename)
+{
+	// Parameter validation
+    if (bs == NULL || filename == NULL) {
+        return 0;
+    }
+
+	// Opens file with POSIX interface, 0644 for read/write permissions
+    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) {
+        return 0; 
+    }
+
+	// Writes block store data to file
+    ssize_t bytes_written = write(fd, bs->data, BLOCK_STORE_NUM_BYTES);
+    
+	// Checks if write failed
+    if (bytes_written < 0) {
+        close(fd);
+        return 0;
+    }
+
+    size_t current_file_size = (size_t)bytes_written;
+	
+	// Pads rest of file with zeros until at expected file size
+    if (current_file_size < BLOCK_STORE_NUM_BYTES) {
+        uint8_t zero_pad = 0;
+        
+        while (current_file_size < BLOCK_STORE_NUM_BYTES) {
+            ssize_t pad_result = write(fd, &zero_pad, 1);
+            
+            if (pad_result > 0) {
+                current_file_size += pad_result;
+            } else {
+                break; 
+            }
+        }
+    }
+
+    close(fd);
+
+    return current_file_size;
+}
 }
